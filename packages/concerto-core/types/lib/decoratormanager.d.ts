@@ -21,21 +21,19 @@ declare class DecoratorManager {
     static validate(decoratorCommandSet: any, modelFiles?: ModelFile[]): ModelManager;
     /**
      * Rewrites the $class property on decoratorCommandSet classes.
-     * @private
      * @param {*} decoratorCommandSet the DecoratorCommandSet object
      * @param {string} version the DCS version upgrade target
      * @returns {object} the migrated DecoratorCommandSet object
      */
-    private static migrateTo;
+    static migrateTo(decoratorCommandSet: any, version: string): object;
     /**
      * Checks if the supplied decoratorCommandSet can be migrated.
      * Migrations should only take place across minor versions of the same major version.
-     * @private
      * @param {*} decoratorCommandSet the DecoratorCommandSet object
      * @param {*} DCS_VERSION the DecoratorCommandSet version
      * @returns {boolean} returns true if major versions are equal
      */
-    private static canMigrate;
+    static canMigrate(decoratorCommandSet: any, DCS_VERSION: any): boolean;
     /**
      * Add decorator commands set with index object to the coresponding target map
      * @param {*} targetMap the target map to add the command to
@@ -81,6 +79,7 @@ declare class DecoratorManager {
      * @param {boolean} [options.validateCommands] - validate the decorator command set targets. Note that
      * the validate option must also be true
      * @param {boolean} [options.migrate] - migrate the decoratorCommandSet $class to match the dcs model version
+     * @param {boolean} [options.defaultNamespace] - the default namespace to use for decorator commands that include a decorator without a namespace
      * @param {boolean} [options.enableDcsNamespaceTarget] - flag to control applying namespace targeted decorators on top of the namespace instead of all declarations in that namespace
      * @returns {ModelManager} a new model manager with the decorations applied
      */
@@ -88,6 +87,7 @@ declare class DecoratorManager {
         validate?: boolean;
         validateCommands?: boolean;
         migrate?: boolean;
+        defaultNamespace?: boolean;
         enableDcsNamespaceTarget?: boolean;
     }): ModelManager;
     /**

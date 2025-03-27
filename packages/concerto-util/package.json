@@ -1,6 +1,6 @@
 {
   "name": "@accordproject/concerto-util",
-  "version": "3.19.2",
+  "version": "3.20.4",
   "description": "Utilities for Concerto Modeling Language",
   "homepage": "https://github.com/accordproject/concerto",
   "engines": {
@@ -8,19 +8,12 @@
     "npm": ">=10"
   },
   "main": "index.js",
-  "browser": {
-    "main": "dist/concerto-util.js",
-    "fs": false,
-    "path": false
-  },
+  "browser": "dist/concerto-util.js",
   "typings": "types/index.d.ts",
   "scripts": {
     "prepublishOnly": "npm run webpack",
-    "pretest": "npm run lint",
+    "pretest": "npm run lint && npm run doc",
     "lint": "eslint .",
-    "postlint": "npm run licchk",
-    "licchk": "license-check-and-add",
-    "postlicchk": "npm run doc",
     "doc": "jsdoc --pedantic --recurse -c jsdoc.json",
     "test": "nyc mocha --recursive -t 10000",
     "test:watch": "nyc mocha --watch --recursive -t 10000",
@@ -47,62 +40,23 @@
     "chai": "4.3.6",
     "chai-as-promised": "7.1.1",
     "chai-things": "0.2.0",
-    "eslint": "8.2.0",
-    "jsdoc": "^4.0.2",
-    "license-check-and-add": "2.3.6",
-    "mocha": "10.0.0",
-    "node-polyfill-webpack-plugin": "2.0.1",
-    "nyc": "15.1.0",
-    "tmp-promise": "3.0.2",
-    "typescript": "4.6.3",
-    "undici": "^6.19.8"
+    "eslint": "8.57.1",
+    "jsdoc": "^4.0.4",
+    "mocha": "10.8.2",
+    "node-polyfill-webpack-plugin": "4.0.0",
+    "nyc": "17.1.0",
+    "tmp-promise": "3.0.3",
+    "typescript": "5.7.2",
+    "undici": "^7.0.0",
+    "webpack": "5.96.1",
+    "sinon": "19.0.2"
   },
   "dependencies": {
     "@supercharge/promise-pool": "1.7.0",
-    "debug": "4.3.4",
+    "debug": "4.3.7",
     "slash": "3.0.0"
   },
   "browserslist": "> 0.25%, not dead",
-  "license-check-and-add-config": {
-    "folder": "./lib",
-    "license": "HEADER",
-    "exact_paths_method": "EXCLUDE",
-    "exact_paths": [
-      "api.txt",
-      "composer-logs",
-      "coverage",
-      "LICENSE",
-      "node_modules",
-      ".nyc-output",
-      "out",
-      ".tern-project"
-    ],
-    "file_type_method": "EXCLUDE",
-    "file_types": [
-      ".yml",
-      ".yaml",
-      ".zip",
-      ".tgz"
-    ],
-    "insert_license": false,
-    "license_formats": {
-      "js|njk|pegjs|cto|acl|qry": {
-        "prepend": "/*",
-        "append": " */",
-        "eachLine": {
-          "prepend": " * "
-        }
-      },
-      "npmrc|editorconfig|txt": {
-        "eachLine": {
-          "prepend": "# "
-        }
-      },
-      "md": {
-        "file": "HEADER.md"
-      }
-    }
-  },
   "nyc": {
     "produce-source-map": "true",
     "sourceMap": "inline",

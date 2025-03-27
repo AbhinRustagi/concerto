@@ -31,10 +31,10 @@ if (global === undefined) {
 }
 /* eslint-enable no-unused-vars */
 
-const DCS_VERSION = '0.3.0';
+const DCS_VERSION = '0.4.0';
 
 const DCS_MODEL = `concerto version "^3.0.0"
-namespace org.accordproject.decoratorcommands@0.3.0
+namespace org.accordproject.decoratorcommands@0.4.0
 
 import concerto.metamodel@1.0.0.Decorator
 
@@ -83,6 +83,7 @@ concept Command {
     o CommandTarget target
     o Decorator decorator
     o CommandType type
+    o String decoratorNamespace optional
 }
 
 /**
@@ -198,7 +199,6 @@ class DecoratorManager {
 
     /**
      * Rewrites the $class property on decoratorCommandSet classes.
-     * @private
      * @param {*} decoratorCommandSet the DecoratorCommandSet object
      * @param {string} version the DCS version upgrade target
      * @returns {object} the migrated DecoratorCommandSet object
@@ -223,7 +223,6 @@ class DecoratorManager {
     /**
      * Checks if the supplied decoratorCommandSet can be migrated.
      * Migrations should only take place across minor versions of the same major version.
-     * @private
      * @param {*} decoratorCommandSet the DecoratorCommandSet object
      * @param {*} DCS_VERSION the DecoratorCommandSet version
      * @returns {boolean} returns true if major versions are equal
@@ -320,12 +319,13 @@ class DecoratorManager {
                 strict: true,
                 metamodelValidation: true,
                 addMetamodel: true,
-                enableMapType
+                enableMapType,
+                importAliasing: modelManager.isAliasedTypeEnabled(),
             });
             validationModelManager.addModelFiles(modelManager.getModelFiles());
             validationModelManager.addCTOModel(
                 DCS_MODEL,
-                'decoratorcommands@0.3.0.cto'
+                'decoratorcommands@0.4.0.cto'
             );
             const factory = new Factory(validationModelManager);
             const serializer = new Serializer(factory, validationModelManager);
@@ -365,6 +365,7 @@ class DecoratorManager {
      * @param {boolean} [options.validateCommands] - validate the decorator command set targets. Note that
      * the validate option must also be true
      * @param {boolean} [options.migrate] - migrate the decoratorCommandSet $class to match the dcs model version
+     * @param {boolean} [options.defaultNamespace] - the default namespace to use for decorator commands that include a decorator without a namespace
      * @param {boolean} [options.enableDcsNamespaceTarget] - flag to control applying namespace targeted decorators on top of the namespace instead of all declarations in that namespace
      * @returns {ModelManager} a new model manager with the decorations applied
      */
@@ -372,10 +373,31 @@ class DecoratorManager {
 
         this.migrateAndValidate(modelManager, decoratorCommandSet, options?.migrate, options?.validate, options?.validateCommands);
 
+        // we create synthetic imports for all decorator declarations
+        // along with any of their type reference arguments
+        const decoratorImports = decoratorCommandSet.commands.map(command => {
+            return [{
+                $class: `${MetaModelNamespace}.ImportType`,
+                name: command.decorator.name,
+                namespace: command.decorator.namespace ? command.decorator.namespace : options?.defaultNamespace
+            }].concat(command.decorator.arguments ? command.decorator.arguments?.filter(a => a.type)
+                .map(a => {
+                    return {
+                        $class: `${MetaModelNamespace}.ImportType`,
+                        name: a.type.name,
+                        namespace: a.type.namespace ? a.type.namespace : options?.defaultNamespace
+                    };
+                })
+                : []);
+        }).flat().filter(i => i.namespace);
         const { namespaceCommandsMap, declarationCommandsMap, propertyCommandsMap, mapElementCommandsMap, typeCommandsMap }  = this.getDecoratorMaps(decoratorCommandSet);
-        const ast = modelManager.getAst(true);
+        const ast = modelManager.getAst(true, true);
         const decoratedAst = JSON.parse(JSON.stringify(ast));
         decoratedAst.models.forEach((model) => {
+            // remove the imports for types defined in this namespace
+            const neededImports = decoratorImports.filter(i => i.namespace !== model.namespace);
+            // add the imports for decorators, in case they get added below
+            model.imports = model.imports ? model.imports.concat(neededImports) : neededImports;
             model.declarations.forEach((decl) => {
                 const declarationDecoratorCommandSets = [];
                 const { name: declarationName, $class: $classForDeclaration } = decl;
@@ -421,8 +443,13 @@ class DecoratorManager {
 
             });
         });
+
         const enableMapType = modelManager?.enableMapType ? true : false;
-        const newModelManager = new ModelManager({ enableMapType });
+        const newModelManager = new ModelManager({
+            strict: modelManager.isStrict(),
+            enableMapType,
+            importAliasing: modelManager.isAliasedTypeEnabled(),
+            decoratorValidation: modelManager.getDecoratorValidation()});
         newModelManager.fromAst(decoratedAst);
         return newModelManager;
     }
@@ -447,7 +474,7 @@ class DecoratorManager {
             locale:'en',
             ...options
         };
-        const sourceAst = modelManager.getAst(true);
+        const sourceAst = modelManager.getAst(true, true);
         const decoratorExtrator = new DecoratorExtractor(options.removeDecoratorsFromModel, options.locale, DCS_VERSION, sourceAst, DecoratorExtractor.Action.EXTRACT_ALL);
         const collectionResp = decoratorExtrator.extract();
         return {
@@ -470,7 +497,7 @@ class DecoratorManager {
             locale:'en',
             ...options
         };
-        const sourceAst = modelManager.getAst(true);
+        const sourceAst = modelManager.getAst(true, true);
         const decoratorExtrator = new DecoratorExtractor(options.removeDecoratorsFromModel, options.locale, DCS_VERSION, sourceAst, DecoratorExtractor.Action.EXTRACT_VOCAB);
         const collectionResp = decoratorExtrator.extract();
         return {
@@ -773,7 +800,7 @@ class DecoratorManager {
             return true;
         } else {
             Warning.printDeprecationWarning(
-                'Functionality for namespace targeted Decorator Command Sets has beed changed. Using namespace targets to apply decorators on all declarations in a namespace will be deprecated soon.',
+                'Functionality for namespace targeted Decorator Command Sets has changed. Using namespace targets to apply decorators on all declarations in a namespace will be deprecated soon.',
                 ErrorCodes.DEPRECATION_WARNING,
                 ErrorCodes.CONCERTO_DEPRECATION_001,
                 'Please refer to https://concerto.accordproject.org/deprecation/001'
